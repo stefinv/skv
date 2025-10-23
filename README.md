@@ -168,6 +168,7 @@ a7c0b089b10c   vault:1.8.3                          "docker-entrypoint.s…"   2
 
 ##  Pipeline YAML Example (GitHub Actions)
  
+ ```
  name: Deploy Platform Interview Services
 
 on:
@@ -214,3 +215,5 @@ jobs:
 
       - name: Verify Containers
         run: docker ps
+
+ ``
