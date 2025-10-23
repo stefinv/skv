@@ -127,7 +127,7 @@ a7c0b089b10c   vault:1.8.3                          "docker-entrypoint.s…"   2
    terraform output frontend_container    # Shows frontend container name
 
 
-## Refactored Changes vs Original Form3 README
+## Refactored Changes 
 
 | Change / Improvement               | Description                                                              |
 | ---------------------------------- | ------------------------------------------------------------------------ |
