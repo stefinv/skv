@@ -43,9 +43,9 @@ The project structure is as follows:
     ├── outputs.tf # Terraform outputs
     ├── providers.tf # Terraform providers (Docker, Vault)
     ├── environments # Environment-specific tfvars
-│      ├── dev.tfvars
-│      ├── staging.tfvars
-│      └── prod.tfvars
+       ├── dev.tfvars
+       ├── staging.tfvars
+       └── prod.tfvars
 ```
 ## Terraform Environments
 
