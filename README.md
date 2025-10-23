@@ -38,12 +38,25 @@ The project structure is as follows:
 │   ├── gateway
 │   └── payment
 └── tf
-    └── main.tf
+    ├── main.tf # Terraform resources (Vault secrets, users, Docker containers)
+    ├── variables.tf # Terraform variables
+    ├── outputs.tf # Terraform outputs
+    ├── providers.tf # Terraform providers (Docker, Vault)
+    ├── environments # Environment-specific tfvars
+│      ├── dev.tfvars
+│      ├── staging.tfvars
+│      └── prod.tfvars
 ```
-1. Refactoring the Terraform code found in the [tf](./tf) directory is the primary focus of this test.
-1. `Vagrantfile`, `run.sh` and `docker-compose.yml` are used to bootstrap this sample application; refactoring these files is not part of the test, but these files may be modified if your solution requires it.
-1. `form3.crt` is used to ease sandboxed running of the submission by Form3 staff and can be ignored.
-1. The `services` code is used to simulate a microservices architecture that connects to vault to retrieve database credentials. The code and method of connecting to vault can be ignored for the purposes of this test.
+## Terraform Environments
+
+| Environment | Vault Container   | Vault Port | Docker Network      | Frontend Port |
+| ----------- | ----------------- | ---------- | ------------------- | ------------- |
+| Dev         | vault-development | 8201       | vagrant_development | 4080          |
+| Staging     | vault-staging     | 8251       | vagrant_staging     | 4085          |
+| Prod        | vault-production  | 8301       | vagrant_production  | 4081          |
+
+   Each environment has its own Vault container, Docker network, and frontend port.
+
 
 ## Using an M1 Mac?
 If you are using an M1 Mac then you need to install some additional tools:
@@ -88,37 +101,56 @@ c4b7132104ff   form3tech-oss/platformtest-gateway   "/go/bin/gateway"        16 
 96e629f21d56   vault:1.8.3                          "docker-entrypoint.s…"   2 minutes ago    Up 2 minutes    0.0.0.0:8301->8200/tcp, :::8301->8200/tcp   vagrant-vault-production-1
 a7c0b089b10c   vault:1.8.3                          "docker-entrypoint.s…"   2 minutes ago    Up 2 minutes    0.0.0.0:8201->8200/tcp, :::8201->8200/tcp   vagrant-vault-development-1
 ```
+## Docker Services
 
-## ⚙️ Task
-Imagine the following scenario, your company is growing quickly 🚀 and increasing the number services being deployed and configured.
-It's been noticed that the code in `tf/main.tf` is not very easy to maintain 😢.
-
-We would like you to complete the following tasks:
-
-- [ ] Improve the Terraform code to make it easier to add/update/remove services
-- [ ] Add a new environment called `staging` that runs each microservice
-- [ ] Add a README detailing: 
-  - [ ] Your design decisions, if you are new to Terraform let us know
-  - [ ] How your code would fit into a CI/CD pipeline
-  - [ ] Anything beyond the scope of this task that you would consider when running this code in a real production environment
+| Service  | Description                                                                             |
+| -------- | --------------------------------------------------------------------------------------- |
+| Vault    | Secret storage for each environment (`dev`, `staging`, `prod`). Tokens match `.tfvars`. |
+| Account  | Sample service container storing secrets in Vault                                       |
+| Gateway  | Sample service container storing secrets in Vault                                       |
+| Payment  | Sample service container storing secrets in Vault                                       |
+| Frontend | Nginx container exposing all services per environment                                   |
 
 
-## 📝 Candidate instructions
-1. Create a private [GitHub](https://help.github.com/en/articles/create-a-repo) repository containing the content of this repository
-2. Complete the [Task](#task) :tada:
-3. [Invite](https://help.github.com/en/articles/inviting-collaborators-to-a-personal-repository) [@form3tech-interviewer-1](https://github.com/form3tech-interviewer-1) to your private repo
-4. Let us know you've completed the exercise using the link provided at the bottom of the email from our recruitment team
+## Docker Networks:
+
+  * Each environment has a dedicated Docker network (vagrant_development, vagrant_staging, vagrant_production)
+
+  * All service containers are attached to their corresponding network
 
 
-## Submission Guidance
+##  Outputs
 
-### Shoulds
-- Use only plain Terraform in your solution, i.e. anything supported by the Terraform CLI installed by the `run.sh` script, but not external tooling or libraries that wrap or extend Terraform, such as Terragrunt or tfenv
-- Only modify files in the `tf/` directory, `run.sh`, and `docker-compose.yml`
-- Keep the current versions of the services running in `development` and `production` environments
-- Structure your code in a way that will segregate environments
-- 🚨 All environments (including staging) should be created when you run `vagrant up` and the apps should print `service started` and the secret data in their logs 🚨
-- Structure your code in a way that allows engineers to run different versions of services in different environments
+  After applying Terraform, check container names:
 
-### Should Nots
-- Do not use external tools that extend Terraform, such as Terragrunt.
+   terraform output services_containers   # Lists service container names
+   terraform output frontend_container    # Shows frontend container name
+
+
+## Refactored Changes vs Original Form3 README
+
+| Change / Improvement               | Description                                                              |
+| ---------------------------------- | ------------------------------------------------------------------------ |
+| Multiple Environments              | Added `dev`, `staging`, `prod` environments with separate `.tfvars`.     |
+| Vault Integration per Environment  | Each environment now has its own Vault container and root token.         |
+| Docker Networks per Environment    | Services attached to dedicated networks for isolation.                   |
+| Frontend Container                 | Single Nginx frontend container per environment to expose services.      |
+| Terraform Refactor                 | `for_each` loops used for Vault secrets, users, and Docker services.     |
+| Automation with `run.sh`           | Builds Docker images, starts Vault, and applies Terraform automatically. |
+| Vagrantfile M1 / Multipass support | Detects architecture and provisions VM accordingly.                      |
+| Clearer Ports & Config             | Frontend ports and Vault ports defined per environment for clarity.      |
+| Easier Maintenance                 | Centralized `.tfvars` and reusable resources for future scalability.     |
+
+
+## How the Code Fits into a CI/CD Pipeline
+
+ Pipeline Stages:
+
+ | Stage                      | Description                                            | How Your Code Fits                                                         |
+| -------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| **Checkout**               | Pull latest code                                       | Repository with Terraform, Dockerfiles, `docker-compose.yml`, `.tfvars`    |
+| **Build Docker Images**    | Build service images (`account`, `gateway`, `payment`) | Uses `docker build` commands from `run.sh`                                 |
+| **Start Vault**            | Launch Vault container for secrets                     | `docker-compose up -d vault-<environment>`                                 |
+| **Terraform Apply**        | Deploy secrets, users, and Docker containers           | `terraform init` + `terraform apply -var-file="environments/<env>.tfvars"` |
+| **Verify**                 | Check containers and services                          | `docker ps`, Vault secret checks, frontend access                          |
+| **Optional Notifications** | Alert on success/failure                               | Slack, email, or Teams notifications                                       |
