@@ -154,3 +154,13 @@ a7c0b089b10c   vault:1.8.3                          "docker-entrypoint.s…"   2
 | **Terraform Apply**        | Deploy secrets, users, and Docker containers           | `terraform init` + `terraform apply -var-file="environments/<env>.tfvars"` |
 | **Verify**                 | Check containers and services                          | `docker ps`, Vault secret checks, frontend access                          |
 | **Optional Notifications** | Alert on success/failure                               | Slack, email, or Teams notifications                                       |
+
+## Key Points:
+
+ * Environment selection via .tfvars (dev, staging, prod).
+
+ * Vault handles secrets; Terraform provisions services.
+
+ * Docker containers are environment-isolated using networks and naming.
+
+ * Fully automatable in Jenkins, GitHub Actions, or GitLab CI.
