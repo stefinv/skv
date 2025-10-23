@@ -164,3 +164,53 @@ a7c0b089b10c   vault:1.8.3                          "docker-entrypoint.s…"   2
  * Docker containers are environment-isolated using networks and naming.
 
  * Fully automatable in Jenkins, GitHub Actions, or GitLab CI.
+
+
+##  Pipeline YAML Example (GitHub Actions)
+ 
+ name: Deploy Platform Interview Services
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, staging, prod]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.11.4
+
+      - name: Build Docker Images
+        run: |
+          docker build ./services/account -t form3tech-oss/platformtest-account
+          docker build ./services/gateway -t form3tech-oss/platformtest-gateway
+          docker build ./services/payment -t form3tech-oss/platformtest-payment
+
+      - name: Start Vault
+        run: |
+          docker-compose -f docker-compose.yml up -d vault-${{ matrix.environment }}
+
+      - name: Terraform Init
+        working-directory: ./tf
+        run: terraform init -upgrade
+
+      - name: Terraform Apply
+        working-directory: ./tf
+        run: terraform apply -auto-approve -var-file="environments/${{ matrix.environment }}.tfvars"
+
+      - name: Verify Containers
+        run: docker ps
